@@ -20,9 +20,6 @@ import SortIcon from '~components/SortIcon';
 import { getFlavorSlug, getVendorSlug, getIngredientSlug } from '~utils';
 import SortWorker from '~workers/sortWorker';
 
-const debounceLeading = (fn, delay = 250) =>
-  debounce(fn, delay, { leading: true });
-
 const NodesType = PropTypes.shape({
   nodes: PropTypes.arrayOf(PropTypes.object)
 });
@@ -95,11 +92,12 @@ export default class FlavorsPage extends Component {
     this.onCategoryChange = this.onCategoryChange.bind(this);
     this.onFlavorChange = this.onFlavorChange.bind(this);
     this.onIngredientChange = this.onIngredientChange.bind(this);
-    this.onSortChange = this.onSortChange.bind(this);
     this.onVendorChange = this.onVendorChange.bind(this);
+    this.onSortChange = this.onSortChange.bind(this);
     this.refreshResults = this.refreshResults.bind(this);
     this.startSort = this.startSort.bind(this);
     this.finishSort = this.finishSort.bind(this);
+    this.flavorMatches = this.flavorMatches.bind(this);
   }
 
   componentDidMount() {
@@ -114,32 +112,34 @@ export default class FlavorsPage extends Component {
     this.sortWorker.removeEventListener('message');
   }
 
+  flavorMatches({ flavor, vendor, ingredient }) {
+    const { selected } = this.state;
+
+    return (
+      (!selected?.flavor ||
+        flavor.name.toLowerCase().includes(selected.flavor.toLowerCase())) &&
+      (!selected?.vendor ||
+        vendor.name.toLowerCase().includes(selected.vendor.toLowerCase()) ||
+        vendor.code.toLowerCase().includes(selected.vendor.toLowerCase())) &&
+      (!selected?.ingredient ||
+        ingredient.name
+          .toLowerCase()
+          .includes(selected.ingredient.toLowerCase())) &&
+      (!selected?.category?.length ||
+        selected.category.some(category => category === ingredient.category))
+    );
+  }
+
   refreshResults() {
-    const { rows, selected } = this.state;
+    const { rows } = this.state;
 
-    const results = rows.flatMap(row => {
-      const { vendor, flavor, ingredient } = row;
-      const flavorMatches =
-        (!selected?.flavor ||
-          flavor.name.toLowerCase().includes(selected.flavor.toLowerCase())) &&
-        (!selected?.vendor ||
-          vendor.name.toLowerCase().includes(selected.vendor.toLowerCase()) ||
-          vendor.code.toLowerCase().includes(selected.vendor.toLowerCase())) &&
-        (!selected?.ingredient ||
-          ingredient.name
-            .toLowerCase()
-            .includes(selected.ingredient.toLowerCase())) &&
-        (!selected?.category?.length ||
-          selected.category.some(category => category === ingredient.category));
-
-      return flavorMatches ? [row] : [];
-    });
-
-    this.startSort(results);
+    this.startSort(rows.filter(row => this.flavorMatches(row)));
   }
 
   startSort(results) {
-    this.setState({ sorting: true }, () => this.finishSort(results));
+    this.setState({ sorting: results.length > 100 }, () =>
+      this.finishSort(results)
+    );
   }
 
   finishSort(results) {
@@ -156,7 +156,7 @@ export default class FlavorsPage extends Component {
       ...state
     };
 
-    this.setState({ selected }, this.refreshResults);
+    this.setState({ selected }, debounce(this.refreshResults, 250));
   }
 
   onVendorChange(vendor) {
@@ -242,10 +242,10 @@ export default class FlavorsPage extends Component {
                   vendors={vendors}
                   flavors={flavors}
                   ingredients={ingredients}
-                  onVendorChange={debounceLeading(this.onVendorChange)}
-                  onFlavorChange={debounceLeading(this.onFlavorChange)}
-                  onIngredientChange={debounceLeading(this.onIngredientChange)}
-                  onCategoryChange={debounceLeading(this.onCategoryChange)}
+                  onVendorChange={this.onVendorChange}
+                  onFlavorChange={this.onFlavorChange}
+                  onIngredientChange={this.onIngredientChange}
+                  onCategoryChange={this.onCategoryChange}
                   selected={selected}
                 />
               </Card>
