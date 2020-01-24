@@ -27,7 +27,7 @@ const getCategoryVariant = category => {
   return badgeVariant;
 };
 
-const WebWorker = worker => {
+const createWebWorker = worker => {
   const code = worker.toString();
   const blob = new Blob([`(${code})()`]);
 
@@ -35,9 +35,9 @@ const WebWorker = worker => {
 };
 
 module.exports = {
+  createWebWorker,
   getFlavorSlug,
   getIngredientSlug,
   getVendorSlug,
-  getCategoryVariant,
-  WebWorker
+  getCategoryVariant
 };

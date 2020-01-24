@@ -1,4 +1,4 @@
 import sortWorker from './sort.worker';
-import { WebWorker } from '~utils';
+import { createWebWorker } from '~utils';
 
-export default new WebWorker(sortWorker);
+export default createWebWorker(sortWorker);
